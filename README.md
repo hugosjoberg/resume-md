@@ -47,14 +47,27 @@ resume-md preview --watch     # serves locally, rebuilds on save
 
 Edit `resume.md`, drop a headshot in (or remove the `<img>` element), and re-run `build` whenever you want.
 
+### Live preview
+
+`resume-md preview --watch` does three things:
+
+- Auto-refreshes the browser on every save (no Cmd+R).
+- Shows a floating theme picker — switch between bundled and project-local themes without leaving the browser.
+- Displays a build-error overlay when the markdown breaks, plus toast notifications for pandoc warnings.
+
+Run with `--no-live-reload` to serve static files only (the 0.1.0 behavior).
+
 ## CLI
 
 | Command | What it does |
 |---|---|
 | `resume-md init [PATH]` | Scaffold a new resume project (default `./resume`). |
 | `resume-md build [--theme NAME]` | Generate `index.html` + `resume.pdf`. |
-| `resume-md preview [--watch]` | Serve locally; with `--watch`, rebuild on file changes. |
+| `resume-md preview [--watch]` | Serve locally with live-reload; `--watch` also rebuilds on file changes. |
 | `resume-md themes` | List bundled + project-local themes. |
+| `resume-md theme new <NAME> [--from <BASE>]` | Scaffold a new theme stylesheet in your project. |
+| `resume-md theme vars [--theme <NAME>]` | List CSS variables (and effective overrides for a theme). |
+| `resume-md update [--dry-run]` | Sync upstream infrastructure files into an existing project. |
 | `resume-md doctor` | Verify Pandoc and WeasyPrint are available. |
 
 Run `resume-md <command> --help` for full options.

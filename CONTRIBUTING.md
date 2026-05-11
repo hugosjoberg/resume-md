@@ -52,3 +52,32 @@ cd /tmp/dev-test && resume-md build && open resume.pdf
 ## Commit style
 
 Short messages with a type prefix where useful: `feat:`, `fix:`, `docs:`, `chore:`, `refactor:`. PR bodies should describe the user-visible behavior change.
+
+## Browser smoke checklist
+
+Run this when you touch `src/resume_md/_preview/client.py` or
+`src/resume_md/_preview/server.py`. Automated tests cover the server logic;
+this checklist covers the browser-side UI.
+
+```bash
+rm -rf /tmp/rm-smoke
+resume-md init /tmp/rm-smoke
+cd /tmp/rm-smoke && resume-md build && resume-md preview --watch
+```
+
+In the browser:
+
+- [ ] **Auto-refresh**: edit `resume.md`, save, page should reload within ~1s.
+- [ ] **Theme picker**: open the dropdown in the bottom-right, switch to each
+      theme. Each renders cleanly.
+- [ ] **Theme persists**: refresh the page manually — the picker remembers
+      your last selection.
+- [ ] **Error overlay**: break the markdown (e.g. open a YAML block with `---`
+      and never close it). The overlay should appear with the error.
+- [ ] **Overlay clears**: fix the markdown. The overlay should disappear on
+      the next successful build.
+- [ ] **Pandoc warning toast**: delete `headshot.svg`, save. A yellow toast
+      should appear with `pandoc: ... headshot.svg ...`. It dismisses after ~5s.
+- [ ] **`--no-live-reload`**: stop the server, restart with
+      `resume-md preview --no-live-reload`. The page renders without the
+      floating picker — and editing `resume.md` does NOT trigger a refresh.
