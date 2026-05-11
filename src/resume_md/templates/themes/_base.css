@@ -1,0 +1,223 @@
+/*
+ * resume-md base stylesheet.
+ *
+ * Themes set variables on :root; this file uses them. To customize visual
+ * style, copy any theme file in this directory and override variables —
+ * don't edit this file.
+ */
+
+:root {
+  /* Colors */
+  --accent: #6b5947;
+  --ink: #1a1a1a;
+  --ink-soft: #333333;
+  --body-secondary: #555555;
+  --meta: #777777;
+  --label: #999999;
+  --rule-section: #e0dbd5;
+  --rule-header: var(--accent);
+  --paper: #faf8f5;
+
+  /* Typography */
+  --font-body: "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Helvetica Neue", Arial, sans-serif;
+
+  --fs-body: 10pt;
+  --fs-name: 26pt;
+  --fs-role: 9pt;
+  --fs-summary: 9pt;
+  --fs-contact: 8pt;
+  --fs-section: 8pt;
+  --fs-skills-cell: 9pt;
+  --fs-skills-label: 8pt;
+  --fs-entry: 10pt;
+  --fs-period: 8pt;
+  --fs-em: 9pt;
+  --fs-bullet: 9.5pt;
+  --fs-stack: 7.5pt;
+  --fs-desc: 9pt;
+
+  /* Tracking */
+  --tracking-name: -0.8px;
+  --tracking-uppercase: 2.5px;
+
+  /* Layout */
+  --max-width: 780px;
+  --page-size: A4;
+  --page-margin: 14mm 16mm;
+  --headshot-size: 68px;
+  --headshot-radius: 50%;
+  --header-border-width: 2px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  line-height: 1.4;
+  color: var(--ink);
+  background: var(--paper);
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 20px 24px;
+}
+
+/* ── Header ── */
+.header {
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: var(--header-border-width) solid var(--rule-header);
+}
+.header-top {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+.name-block { flex: 1; }
+
+h1 {
+  font-family: var(--font-display);
+  font-size: var(--fs-name);
+  font-weight: 700;
+  letter-spacing: var(--tracking-name);
+  line-height: 1;
+  color: var(--ink);
+  margin-bottom: 3px;
+}
+.role {
+  display: block;
+  font-size: var(--fs-role);
+  font-weight: 500;
+  letter-spacing: var(--tracking-uppercase);
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.headshot {
+  width: var(--headshot-size);
+  height: var(--headshot-size);
+  border-radius: var(--headshot-radius);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.summary {
+  font-size: var(--fs-summary);
+  line-height: 1.45;
+  color: var(--body-secondary);
+  margin-bottom: 6px;
+}
+
+.contact-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 12px;
+  font-size: var(--fs-contact);
+  color: var(--meta);
+}
+.contact-row a { color: var(--accent); text-decoration: none; }
+.contact-row a:hover { text-decoration: underline; }
+
+/* ── Section headings ── */
+h2 {
+  font-size: var(--fs-section);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-uppercase);
+  color: var(--accent);
+  margin-top: 12px;
+  margin-bottom: 5px;
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--rule-section);
+}
+
+/* ── Skills table ── */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-skills-cell);
+  margin-bottom: 0;
+}
+th, td {
+  text-align: left;
+  padding: 1px 6px 1px 0;
+  border: none;
+}
+td:first-child {
+  width: 120px;
+  white-space: nowrap;
+  font-weight: 600;
+  font-size: var(--fs-skills-label);
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ── Experience entries ── */
+h3 {
+  font-size: var(--fs-entry);
+  font-weight: 600;
+  margin-bottom: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  color: var(--ink);
+}
+.period {
+  font-size: var(--fs-period);
+  font-weight: 400;
+  color: var(--label);
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+}
+
+h3 + p > em:first-child {
+  font-size: var(--fs-em);
+  color: var(--body-secondary);
+}
+
+ul {
+  margin: 1px 0 1px 14px;
+}
+li {
+  margin-bottom: 0.5px;
+  color: var(--ink-soft);
+  font-size: var(--fs-bullet);
+}
+
+/* Stack lines */
+p > strong:first-child {
+  font-size: var(--fs-stack);
+  color: var(--label);
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
+
+/* ── Entry spacing ── */
+h3 { margin-top: 8px; }
+h2 + h3 { margin-top: 0; }
+
+/* ── Descriptions ── */
+h3 + p + p {
+  font-size: var(--fs-desc);
+  margin-bottom: 0;
+}
+
+/* ── Print & PDF ── */
+@media print {
+  body { padding: 0; max-width: none; background: #fff; }
+  .header { border-bottom-color: var(--rule-header); }
+  h2 { margin-top: 10px; border-color: var(--rule-section); }
+  a { color: var(--accent) !important; }
+  .headshot {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
+@page {
+  size: var(--page-size);
+  margin: var(--page-margin);
+}

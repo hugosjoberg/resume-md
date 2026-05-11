@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Headshot placeholder">
+  <rect width="200" height="200" fill="#ece6dd"/>
+  <circle cx="100" cy="78" r="32" fill="#bfb4a4"/>
+  <path d="M40 200 C40 145 70 120 100 120 C130 120 160 145 160 200 Z" fill="#bfb4a4"/>
+</svg>

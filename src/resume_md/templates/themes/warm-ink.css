@@ -1,0 +1,23 @@
+/*
+ * Theme: warm-ink (default)
+ *
+ * "The Architect's Letterhead" — quiet authority with a single warm-ink
+ * accent on a paper-tinted background. Helvetica Neue. Print-first.
+ *
+ * Inherits all structure from _base.css; this file only sets variables.
+ */
+
+:root {
+  --accent: #6b5947;
+  --ink: #1a1a1a;
+  --ink-soft: #333333;
+  --body-secondary: #555555;
+  --meta: #777777;
+  --label: #999999;
+  --rule-section: #e0dbd5;
+  --rule-header: #6b5947;
+  --paper: #faf8f5;
+
+  --font-body: "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Helvetica Neue", Arial, sans-serif;
+}

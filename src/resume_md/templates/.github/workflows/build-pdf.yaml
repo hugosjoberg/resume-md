@@ -1,0 +1,70 @@
+# Build resume.pdf on every push to main; attach to releases on tag.
+#
+# Opt out by deleting this file. Opt out of releases-only by removing the
+# `release` job.
+#
+# To download the PDF from a normal push, open the workflow run in the
+# Actions tab and look for the `resume-pdf` artifact.
+
+name: build-pdf
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write  # required by the `release` job to attach artifacts
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pandoc
+        run: sudo apt-get update && sudo apt-get install -y pandoc
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install resume-md
+        run: pipx install resume-md
+
+      - name: Build
+        run: resume-md build
+
+      - name: Upload PDF as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: resume-pdf
+          path: resume.pdf
+          if-no-files-found: error
+
+      - name: Upload HTML as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: resume-html
+          path: index.html
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download PDF
+        uses: actions/download-artifact@v4
+        with:
+          name: resume-pdf
+
+      - name: Attach PDF to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: resume.pdf
+          generate_release_notes: true

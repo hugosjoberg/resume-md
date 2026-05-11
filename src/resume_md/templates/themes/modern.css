@@ -1,0 +1,31 @@
+/*
+ * Theme: modern
+ *
+ * Contemporary sans-serif with a single blue accent and more breathing
+ * room. Reads as recruiter-friendly tech CV.
+ */
+
+:root {
+  --accent: #2563eb;
+  --ink: #111827;
+  --ink-soft: #1f2937;
+  --body-secondary: #4b5563;
+  --meta: #6b7280;
+  --label: #9ca3af;
+  --rule-section: #e5e7eb;
+  --rule-header: #2563eb;
+  --paper: #ffffff;
+
+  --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --font-display: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+
+  --tracking-name: -0.5px;
+  --tracking-uppercase: 1.8px;
+  --headshot-radius: 8px;
+  --header-border-width: 1px;
+}
+
+/* A touch more vertical rhythm than the default. */
+body { padding: 24px 28px; }
+h2 { margin-top: 16px; }
+h3 { margin-top: 12px; }

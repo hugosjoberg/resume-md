@@ -1,0 +1,30 @@
+/*
+ * Theme: classic
+ *
+ * Traditional CV: serif body type (Charter / Georgia / Times fallback),
+ * black ink on white, no chromatic accent. Reads like a printed academic
+ * paper. Use this when the recipient expects a conservative document.
+ */
+
+:root {
+  --accent: #1a1a1a;
+  --ink: #1a1a1a;
+  --ink-soft: #1a1a1a;
+  --body-secondary: #2a2a2a;
+  --meta: #4a4a4a;
+  --label: #4a4a4a;
+  --rule-section: #cccccc;
+  --rule-header: #1a1a1a;
+  --paper: #ffffff;
+
+  --font-body: "Charter", "Georgia", "Times New Roman", Times, serif;
+  --font-display: "Charter", "Georgia", "Times New Roman", Times, serif;
+
+  --tracking-uppercase: 1.5px;
+  --headshot-radius: 4px;
+}
+
+/* Classic does not use a colored section-label tint; restore neutral cells. */
+td:first-child { color: var(--ink); }
+.role { color: var(--ink); }
+.contact-row a { color: var(--ink); text-decoration: underline; }
