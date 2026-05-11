@@ -77,3 +77,32 @@ def test_theme_new_force_overwrites(
     after = target.read_text(encoding="utf-8")
     assert after != original
     assert "Theme: classic" in after
+
+
+def test_theme_vars_lists_base_defaults(
+    runner: CliRunner, scaffolded_project: Path
+) -> None:
+    result = runner.invoke(
+        app,
+        ["theme", "vars", "--project-dir", str(scaffolded_project)],
+    )
+    assert result.exit_code == 0, result.stdout
+    out = result.stdout
+    assert "--accent" in out
+    assert "#6b5947" in out  # warm-ink accent (default in _base.css)
+    assert "--font-body" in out
+
+
+def test_theme_vars_shows_effective_overrides_for_theme(
+    runner: CliRunner, scaffolded_project: Path
+) -> None:
+    result = runner.invoke(
+        app,
+        [
+            "theme", "vars", "--theme", "modern",
+            "--project-dir", str(scaffolded_project),
+        ],
+    )
+    assert result.exit_code == 0
+    # Effective value column shows the modern override (#2563eb).
+    assert "#2563eb" in result.stdout

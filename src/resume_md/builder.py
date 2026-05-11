@@ -13,6 +13,23 @@ from pathlib import Path
 _H1_RE = re.compile(r"<h1[^>]*>([^<]+)</h1>", re.IGNORECASE)
 _ROLE_RE = re.compile(r'class="role"[^>]*>([^<]+)</span>', re.IGNORECASE)
 
+_ROOT_BLOCK_RE = re.compile(r":root\s*\{([^}]*)\}", re.DOTALL)
+_VAR_DECL_RE = re.compile(r"^\s*(--[a-zA-Z0-9-]+)\s*:\s*(.+?)\s*;?\s*$", re.MULTILINE)
+
+
+def parse_root_vars(css_text: str) -> dict[str, str]:
+    """Extract `--name: value` declarations from every `:root { ... }` block.
+
+    Later blocks override earlier ones (matches CSS cascade for same-specificity
+    rules). Returns a dict in declaration order (Python 3.7+ dict ordering).
+    """
+    declarations: dict[str, str] = {}
+    for block in _ROOT_BLOCK_RE.finditer(css_text):
+        body = block.group(1)
+        for decl in _VAR_DECL_RE.finditer(body):
+            declarations[decl.group(1)] = decl.group(2).strip()
+    return declarations
+
 
 def _parse_pandoc_warnings(stderr: str) -> tuple[str, ...]:
     """Pull `[WARNING] ...` entries out of pandoc's stderr.

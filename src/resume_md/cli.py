@@ -237,6 +237,49 @@ def theme_new(
     typer.echo(f"next: edit {destination} and run `resume-md build --theme {name}`")
 
 
+@theme_app.command(name="vars")
+def theme_vars(
+    theme: str | None = typer.Option(
+        None, "--theme", "-t",
+        help="Show effective values after this theme overlays the base.",
+    ),
+    project_dir: Path = typer.Option(
+        Path("."), "--project-dir", "-C", help="Project directory (default: cwd)."
+    ),
+) -> None:
+    """List every CSS variable from _base.css with default (and effective) values."""
+    target = project_dir.resolve()
+    base_css = _builder._resolve_base_css(target)
+    base_vars = _builder.parse_root_vars(base_css.read_text(encoding="utf-8"))
+
+    overlay_vars: dict[str, str] = {}
+    if theme:
+        themes = discover_themes(target)
+        if theme not in themes:
+            available = ", ".join(sorted(themes)) or "(none)"
+            typer.secho(
+                f"unknown theme {theme!r}. Available: {available}.",
+                fg=typer.colors.RED, err=True,
+            )
+            raise typer.Exit(code=1)
+        overlay_vars = _builder.parse_root_vars(themes[theme].read_text(encoding="utf-8"))
+
+    name_w = max(len(k) for k in base_vars) if base_vars else 0
+    default_w = max(len(v) for v in base_vars.values()) if base_vars else 0
+
+    header_cols = ["Variable", "Default"]
+    if theme:
+        header_cols.append(f"Effective ({theme})")
+    typer.echo("  ".join(
+        [header_cols[0].ljust(name_w), header_cols[1].ljust(default_w), *header_cols[2:]]
+    ))
+    for name, value in base_vars.items():
+        cols = [name.ljust(name_w), value.ljust(default_w)]
+        if theme:
+            cols.append(overlay_vars.get(name, value))
+        typer.echo("  ".join(cols))
+
+
 @app.command()
 def doctor() -> None:
     """Verify that required tools are installed and importable."""
