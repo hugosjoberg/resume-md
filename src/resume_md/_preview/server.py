@@ -114,6 +114,39 @@ class LiveReloadHandler(http.server.SimpleHTTPRequestHandler):
             return
         super().do_GET()
 
+    def do_POST(self) -> None:  # noqa: N802 — http.server convention
+        if self.path == "/__set_theme":
+            self._handle_set_theme()
+            return
+        self.send_error(404, "Not found")
+
+    def _handle_set_theme(self) -> None:
+        length = int(self.headers.get("Content-Length") or 0)
+        try:
+            payload = json.loads(self.rfile.read(length).decode("utf-8") or "{}")
+        except json.JSONDecodeError:
+            self.send_error(400, "Invalid JSON body")
+            return
+        theme = payload.get("theme")
+        if not isinstance(theme, str) or theme not in self._state.available_themes:
+            self.send_error(400, f"Unknown theme: {theme!r}")
+            return
+
+        self._state.set_current_theme(theme)
+        try:
+            self._state.trigger_rebuild(theme)
+        except Exception as exc:  # noqa: BLE001 — propagate detail to user
+            self._state.bus.publish({"type": "build_error", "message": str(exc)})
+            self.send_error(500, f"Rebuild failed: {exc}")
+            return
+
+        body = b'{"ok":true}'
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
     def _handle_state(self) -> None:
         body = json.dumps(
             {

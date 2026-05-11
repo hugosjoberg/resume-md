@@ -6,6 +6,7 @@ import json
 import socket
 import threading
 import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -95,6 +96,41 @@ def _read_sse_block(resp, timeout: float) -> dict:
         if text.startswith("data: "):
             payload_lines.append(text[len("data: ") :])
     raise TimeoutError("no SSE block within timeout")
+
+
+def test_set_theme_endpoint_triggers_rebuild_and_emits_event(live_server) -> None:
+    _, bus, base = live_server
+    # Open an SSE stream so we can observe the resulting event.
+    sse_req = urllib.request.Request(f"{base}/__events")
+    with urllib.request.urlopen(sse_req, timeout=2) as sse:
+        _read_sse_block(sse, timeout=2.0)  # connected
+
+        body = json.dumps({"theme": "modern"}).encode("utf-8")
+        req = urllib.request.Request(
+            f"{base}/__set_theme",
+            data=body,
+            method="POST",
+            headers={"Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=2) as post_resp:
+            assert post_resp.status == 200
+
+        event = _read_sse_block(sse, timeout=2.0)
+        assert event == {"type": "reloaded", "theme": "modern"}
+
+
+def test_set_theme_rejects_unknown_theme(live_server) -> None:
+    _, _, base = live_server
+    body = json.dumps({"theme": "does-not-exist"}).encode("utf-8")
+    req = urllib.request.Request(
+        f"{base}/__set_theme",
+        data=body,
+        method="POST",
+        headers={"Content-Type": "application/json"},
+    )
+    with pytest.raises(urllib.error.HTTPError) as exc_info:
+        urllib.request.urlopen(req, timeout=2)
+    assert exc_info.value.code == 400
 
 
 def test_events_handler_thread_exits_after_client_disconnects(live_server) -> None:
