@@ -231,7 +231,8 @@ class LiveReloadHandler(http.server.SimpleHTTPRequestHandler):
 
     def _write_sse(self, event: dict) -> None:
         data = json.dumps(event)
-        chunk = f"data: {data}\n\n".encode()
+        event_name = event.get("type", "message")
+        chunk = f"event: {event_name}\ndata: {data}\n\n".encode()
         self.wfile.write(chunk)
         self.wfile.flush()
 

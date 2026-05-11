@@ -63,6 +63,7 @@ CLIENT_HTML = """\
   const STORAGE_KEY = "__resume_md_theme";
   const bar = document.getElementById("__rmd_bar");
   const status = document.getElementById("__rmd_status");
+  let overlayEl = null;
 
   function setStatus(text) { status.textContent = text; }
 
@@ -71,11 +72,40 @@ CLIENT_HTML = """\
     location.reload();
   }
 
+  function showOverlay(message) {
+    if (overlayEl) overlayEl.remove();
+    overlayEl = document.createElement("div");
+    overlayEl.className = "__rmd-overlay";
+    const box = document.createElement("div");
+    box.className = "__rmd-overlay-box";
+    const title = document.createElement("div");
+    title.className = "__rmd-overlay-title";
+    title.textContent = "Build failed";
+    const body = document.createElement("div");
+    body.textContent = message;
+    box.appendChild(title);
+    box.appendChild(body);
+    overlayEl.appendChild(box);
+    document.body.appendChild(overlayEl);
+  }
+
+  function clearOverlay() {
+    if (overlayEl) { overlayEl.remove(); overlayEl = null; }
+  }
+
   function connect() {
     const src = new EventSource("/__events");
     src.onopen = () => setStatus("live");
     src.onerror = () => setStatus("disconnected — retrying…");
-    src.addEventListener("reloaded", reload);
+    src.addEventListener("reloaded", () => { clearOverlay(); reload(); });
+    src.addEventListener("build_error", (ev) => {
+      try {
+        const payload = JSON.parse(ev.data);
+        showOverlay(payload.message || "Unknown build error.");
+      } catch (e) {
+        showOverlay("Unknown build error.");
+      }
+    });
   }
 
   connect();
