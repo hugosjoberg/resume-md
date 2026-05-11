@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "resume-md"
-version = "0.1.0"
+version = "0.2.0"
 description = "Print-quality PDF resumes from a single Markdown file. Pandoc + WeasyPrint with a deliberate, themeable design system."
 readme = "README.md"
 license = { text = "MIT" }
