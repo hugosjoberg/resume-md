@@ -12,16 +12,24 @@ from pathlib import Path
 
 _H1_RE = re.compile(r"<h1[^>]*>([^<]+)</h1>", re.IGNORECASE)
 _ROLE_RE = re.compile(r'class="role"[^>]*>([^<]+)</span>', re.IGNORECASE)
-_PANDOC_WARNING_RE = re.compile(r"^\s*\[WARNING\]\s*(.+)$", re.MULTILINE)
 
 
 def _parse_pandoc_warnings(stderr: str) -> tuple[str, ...]:
-    """Pull `[WARNING] ...` lines out of pandoc's stderr.
+    """Pull `[WARNING] ...` entries out of pandoc's stderr.
 
-    Other lines (status, info) are ignored. Order is preserved so the most
-    relevant warning is reported first.
+    Continuation lines (whitespace-indented, immediately following a
+    `[WARNING]` header) are folded into the warning they continue, so a
+    multi-line warning is reported as a single entry. Other lines (status,
+    info, blank) are ignored. Order is preserved.
     """
-    return tuple(m.group(1).strip() for m in _PANDOC_WARNING_RE.finditer(stderr))
+    entries: list[str] = []
+    for line in stderr.splitlines():
+        stripped = line.lstrip()
+        if stripped.startswith("[WARNING]"):
+            entries.append(stripped[len("[WARNING]"):].strip())
+        elif entries and line and line[0] in (" ", "\t"):
+            entries[-1] += " " + stripped
+    return tuple(entries)
 
 
 def _extract_page_title(source: Path) -> str:

@@ -13,6 +13,7 @@ import pytest
 from resume_md.builder import (
     BuildError,
     _extract_page_title,
+    _parse_pandoc_warnings,
     build,
     discover_themes,
 )
@@ -130,3 +131,21 @@ def test_successful_build_surfaces_pandoc_warnings(scaffolded_project: Path) -> 
     assert any("headshot" in w.lower() for w in result.warnings), (
         f"expected a warning mentioning headshot; got {result.warnings!r}"
     )
+
+
+def test_parse_pandoc_warnings_folds_continuation_lines() -> None:
+    """Multi-line warnings are stitched together into one tuple entry."""
+    stderr = (
+        "[INFO] some info\n"
+        "[WARNING] Could not fetch resource headshot.svg:\n"
+        "  Falling back to alt text\n"
+        "  More context on a second continuation line\n"
+        "[WARNING] Another warning\n"
+        "trailing line that should be ignored\n"
+    )
+    warnings = _parse_pandoc_warnings(stderr)
+    assert len(warnings) == 2
+    assert "headshot.svg" in warnings[0]
+    assert "Falling back to alt text" in warnings[0]
+    assert "More context" in warnings[0]
+    assert warnings[1] == "Another warning"
