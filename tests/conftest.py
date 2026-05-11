@@ -31,4 +31,17 @@ def scaffolded_project(tmp_path: Path) -> Path:
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(item, dest)
 
+    from resume_md.manifest import (
+        TRACKED_PATHS,
+        Manifest,
+        hash_file,
+        save_manifest,
+    )
+    tracked: dict[str, str] = {}
+    for rel in TRACKED_PATHS:
+        bundled = src / rel
+        if bundled.is_file():
+            tracked[rel] = hash_file(bundled)
+    save_manifest(target, Manifest(resume_md_version="0.2.0", tracked_files=tracked))
+
     return target

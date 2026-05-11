@@ -72,6 +72,21 @@ def init(
             shutil.copy2(item, dest)
             typer.echo(f"  write {rel}")
 
+    # Write .resume-md/manifest.json with the hashes of the BUNDLED files —
+    # not the local files. Recording bundled hashes is what lets `update`
+    # detect user modifications: a local hash that differs from the recorded
+    # (bundled) hash means the user edited the file. Recording the local
+    # hashes here would silently bless user edits and `update` would later
+    # overwrite them.
+    from .manifest import TRACKED_PATHS, Manifest, hash_file, save_manifest
+    tracked: dict[str, str] = {}
+    with resources.as_file(resources.files("resume_md").joinpath("templates")) as templates_dir:
+        for rel in TRACKED_PATHS:
+            bundled_path = Path(templates_dir) / rel
+            if bundled_path.is_file():
+                tracked[rel] = hash_file(bundled_path)
+    save_manifest(target, Manifest(resume_md_version=__version__, tracked_files=tracked))
+
     typer.echo(f"\nScaffolded resume project at {target}")
     typer.echo("Next steps:")
     typer.echo(f"  cd {target}")

@@ -81,3 +81,21 @@ def test_doctor_succeeds_when_tools_present(runner: CliRunner) -> None:
     assert result.exit_code == 0
     assert "pandoc" in result.stdout
     assert "weasyprint" in result.stdout
+
+
+def test_init_writes_manifest(runner: CliRunner, tmp_path: Path) -> None:
+    target = tmp_path / "out"
+    result = runner.invoke(app, ["init", str(target)])
+    assert result.exit_code == 0
+    from resume_md.manifest import (
+        TRACKED_PATHS,
+        load_manifest,
+    )
+    manifest = load_manifest(target)
+    assert set(manifest.tracked_files.keys()) == set(TRACKED_PATHS)
+    # Each recorded hash starts with sha256: and matches the actual file.
+    for rel in TRACKED_PATHS:
+        recorded = manifest.tracked_files[rel]
+        assert recorded.startswith("sha256:")
+        # File exists at scaffold time.
+        assert (target / rel).is_file()
