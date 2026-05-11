@@ -166,3 +166,50 @@ def test_events_handler_thread_exits_after_client_disconnects(live_server) -> No
     while bus.subscriber_count() > 0 and time.monotonic() < deadline:
         time.sleep(0.05)
     assert bus.subscriber_count() == 0, "SSE handler did not clean up subscription"
+
+
+def test_set_theme_rejects_malformed_content_length(live_server) -> None:
+    _, _, base = live_server
+    # urllib won't let us set Content-Length to a non-numeric value, so use
+    # raw socket I/O.
+    host, _, port = base.removeprefix("http://").partition(":")
+    port = int(port)
+    raw = (
+        b"POST /__set_theme HTTP/1.1\r\n"
+        b"Host: 127.0.0.1\r\n"
+        b"Content-Type: application/json\r\n"
+        b"Content-Length: abc\r\n"
+        b"\r\n"
+    )
+    with socket.create_connection((host, port), timeout=2) as s:
+        s.sendall(raw)
+        response = s.recv(4096).decode("utf-8", errors="replace")
+    assert response.startswith("HTTP/1.0 400") or response.startswith("HTTP/1.1 400"), response
+
+
+def test_set_theme_rejects_non_object_body(live_server) -> None:
+    _, _, base = live_server
+    body = b"null"
+    req = urllib.request.Request(
+        f"{base}/__set_theme",
+        data=body,
+        method="POST",
+        headers={"Content-Type": "application/json"},
+    )
+    with pytest.raises(urllib.error.HTTPError) as exc_info:
+        urllib.request.urlopen(req, timeout=2)
+    assert exc_info.value.code == 400
+
+
+def test_set_theme_rejects_array_body(live_server) -> None:
+    _, _, base = live_server
+    body = b'["modern"]'
+    req = urllib.request.Request(
+        f"{base}/__set_theme",
+        data=body,
+        method="POST",
+        headers={"Content-Type": "application/json"},
+    )
+    with pytest.raises(urllib.error.HTTPError) as exc_info:
+        urllib.request.urlopen(req, timeout=2)
+    assert exc_info.value.code == 400

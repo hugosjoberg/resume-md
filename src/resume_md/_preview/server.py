@@ -121,11 +121,18 @@ class LiveReloadHandler(http.server.SimpleHTTPRequestHandler):
         self.send_error(404, "Not found")
 
     def _handle_set_theme(self) -> None:
-        length = int(self.headers.get("Content-Length") or 0)
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            self.send_error(400, "Invalid Content-Length header")
+            return
         try:
             payload = json.loads(self.rfile.read(length).decode("utf-8") or "{}")
         except json.JSONDecodeError:
             self.send_error(400, "Invalid JSON body")
+            return
+        if not isinstance(payload, dict):
+            self.send_error(400, "Body must be a JSON object")
             return
         theme = payload.get("theme")
         if not isinstance(theme, str) or theme not in self._state.available_themes:
