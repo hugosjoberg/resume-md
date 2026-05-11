@@ -103,3 +103,30 @@ def test_build_rejects_missing_source(tmp_path: Path) -> None:
     # tmp_path has no resume.md.
     with pytest.raises(BuildError, match="Source file not found"):
         build(project_dir=tmp_path)
+
+
+@pandoc_required
+def test_pandoc_failure_propagates_stderr(scaffolded_project: Path) -> None:
+    """A malformed source surfaces pandoc's stderr via BuildError.message,
+    so the friendly formatter has something to work with."""
+    source = scaffolded_project / "resume.md"
+    # Write a YAML block with an unclosed string — pandoc parse error.
+    source.write_text('---\ntitle: "broken\n---\n# Hi\n', encoding="utf-8")
+    with pytest.raises(BuildError) as exc_info:
+        build(project_dir=scaffolded_project)
+    msg = str(exc_info.value)
+    assert "pandoc" in msg.lower()
+    # The captured stderr from pandoc should mention either the line or 'YAML'.
+    assert ("line" in msg.lower()) or ("yaml" in msg.lower())
+
+
+@pandoc_required
+def test_successful_build_surfaces_pandoc_warnings(scaffolded_project: Path) -> None:
+    """Missing image warning is captured and returned via the build result."""
+    # Delete the placeholder headshot so pandoc warns on the <img> ref.
+    (scaffolded_project / "headshot.svg").unlink()
+    result = build(project_dir=scaffolded_project)
+    assert result.pdf_path.is_file()
+    assert any("headshot" in w.lower() for w in result.warnings), (
+        f"expected a warning mentioning headshot; got {result.warnings!r}"
+    )

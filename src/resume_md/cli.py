@@ -88,12 +88,18 @@ def build(
     ),
 ) -> None:
     """Generate index.html and resume.pdf in the project directory."""
+    target = project_dir.resolve()
     try:
-        result = _builder.build(project_dir=project_dir.resolve(), theme=theme)
+        result = _builder.build(project_dir=target, theme=theme)
     except BuildError as exc:
-        typer.secho(f"build failed: {exc}", fg=typer.colors.RED, err=True)
+        from .errors import ErrorFormatter
+
+        formatted = ErrorFormatter(project_dir=target).format(str(exc))
+        typer.secho(f"build failed: {formatted.message}", fg=typer.colors.RED, err=True)
         raise typer.Exit(code=1) from exc
 
+    for warning in result.warnings:
+        typer.secho(f"pandoc: {warning}", fg=typer.colors.YELLOW, err=True)
     typer.echo(f"wrote {result.html_path}")
     typer.echo(f"wrote {result.pdf_path}")
 

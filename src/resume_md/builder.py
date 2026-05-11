@@ -12,6 +12,16 @@ from pathlib import Path
 
 _H1_RE = re.compile(r"<h1[^>]*>([^<]+)</h1>", re.IGNORECASE)
 _ROLE_RE = re.compile(r'class="role"[^>]*>([^<]+)</span>', re.IGNORECASE)
+_PANDOC_WARNING_RE = re.compile(r"^\s*\[WARNING\]\s*(.+)$", re.MULTILINE)
+
+
+def _parse_pandoc_warnings(stderr: str) -> tuple[str, ...]:
+    """Pull `[WARNING] ...` lines out of pandoc's stderr.
+
+    Other lines (status, info) are ignored. Order is preserved so the most
+    relevant warning is reported first.
+    """
+    return tuple(m.group(1).strip() for m in _PANDOC_WARNING_RE.finditer(stderr))
 
 
 def _extract_page_title(source: Path) -> str:
@@ -43,6 +53,7 @@ class BuildError(RuntimeError):
 class BuildResult:
     html_path: Path
     pdf_path: Path
+    warnings: tuple[str, ...] = ()
 
 
 def discover_themes(project_dir: Path) -> dict[str, Path]:
@@ -142,7 +153,7 @@ def build(
     page_title = _extract_page_title(source_path)
 
     try:
-        subprocess.run(
+        proc = subprocess.run(
             [
                 "pandoc",
                 str(source_path),
@@ -157,11 +168,17 @@ def build(
             ],
             check=True,
             cwd=project_dir,
+            capture_output=True,
+            text=True,
         )
     except subprocess.CalledProcessError as exc:
-        raise BuildError(f"pandoc failed (exit {exc.returncode}).") from exc
+        stderr = (exc.stderr or "").strip()
+        detail = f"\n{stderr}" if stderr else ""
+        raise BuildError(f"pandoc failed (exit {exc.returncode}).{detail}") from exc
     finally:
         combined_path.unlink(missing_ok=True)
+
+    warnings = _parse_pandoc_warnings(proc.stderr or "")
 
     # WeasyPrint as a library — avoids a second process and surfaces real
     # Python exceptions when something is malformed.
@@ -174,4 +191,4 @@ def build(
 
     HTML(filename=str(html_path)).write_pdf(target=str(pdf_path))
 
-    return BuildResult(html_path=html_path, pdf_path=pdf_path)
+    return BuildResult(html_path=html_path, pdf_path=pdf_path, warnings=warnings)
