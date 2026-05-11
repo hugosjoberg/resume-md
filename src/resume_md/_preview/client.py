@@ -55,6 +55,8 @@ CLIENT_HTML = """\
 </style>
 
 <div class="__rmd-bar" id="__rmd_bar">
+  <span>Theme:</span>
+  <select id="__rmd_theme_select" aria-label="Theme"></select>
   <span class="__rmd-status" id="__rmd_status">connecting…</span>
 </div>
 
@@ -66,6 +68,50 @@ CLIENT_HTML = """\
   let overlayEl = null;
 
   function setStatus(text) { status.textContent = text; }
+
+  async function refreshState() {
+    try {
+      const resp = await fetch("/__state");
+      if (!resp.ok) return null;
+      return await resp.json();
+    } catch (e) {
+      return null;
+    }
+  }
+
+  async function setupThemePicker() {
+    const state = await refreshState();
+    if (!state) return;
+    const sel = document.getElementById("__rmd_theme_select");
+    const remembered = localStorage.getItem(STORAGE_KEY);
+    const initial = remembered && state.available_themes.includes(remembered)
+      ? remembered : state.current_theme;
+    for (const t of state.available_themes) {
+      const o = document.createElement("option");
+      o.value = t; o.textContent = t;
+      if (t === initial) o.selected = true;
+      sel.appendChild(o);
+    }
+    sel.addEventListener("change", async () => {
+      const chosen = sel.value;
+      localStorage.setItem(STORAGE_KEY, chosen);
+      setStatus(`switching to ${chosen}…`);
+      try {
+        await fetch("/__set_theme", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ theme: chosen }),
+        });
+      } catch (e) {
+        setStatus("theme change failed");
+      }
+    });
+    // If the remembered theme differs from current, trigger a rebuild now.
+    if (remembered && remembered !== state.current_theme
+        && state.available_themes.includes(remembered)) {
+      sel.dispatchEvent(new Event("change"));
+    }
+  }
 
   function reload() {
     setStatus("reloading…");
@@ -126,6 +172,7 @@ CLIENT_HTML = """\
   }
 
   connect();
+  setupThemePicker();
 })();
 </script>
 """
