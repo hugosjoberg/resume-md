@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+import queue
 import threading
 import time
 
@@ -65,6 +66,6 @@ def test_concurrent_publishers_do_not_lose_events() -> None:
         received = []
         deadline = time.monotonic() + 3.0
         while len(received) < expected_total and time.monotonic() < deadline:
-            with contextlib.suppress(Exception):
+            with contextlib.suppress(queue.Empty):
                 received.append(q.get(timeout=0.1))
         assert len(received) == expected_total
