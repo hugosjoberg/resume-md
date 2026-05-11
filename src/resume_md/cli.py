@@ -119,6 +119,11 @@ def preview(
     no_open: bool = typer.Option(
         False, "--no-open", help="Don't open a browser window automatically."
     ),
+    no_live_reload: bool = typer.Option(
+        False,
+        "--no-live-reload",
+        help="Disable browser auto-refresh and theme picker; serve static files only.",
+    ),
 ) -> None:
     """Serve the built HTML on localhost. Use --watch for live rebuild."""
     from .preview import serve
@@ -138,6 +143,7 @@ def preview(
         watch=watch,
         theme=theme,
         open_browser=not no_open,
+        live_reload=not no_live_reload,
     )
 
 

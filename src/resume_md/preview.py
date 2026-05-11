@@ -1,36 +1,61 @@
-"""Local preview server with optional file-watching rebuild."""
+"""Preview orchestrator: wires the watcher, the build pipeline, and the
+LiveReloadServer together. Most of the heavy lifting lives in
+``_preview.server``; this file is just glue + signal handling.
+"""
 
 from __future__ import annotations
 
-import http.server
-import socketserver
 import threading
 import time
 import webbrowser
+from collections.abc import Callable
 from datetime import datetime
-from functools import partial
 from pathlib import Path
 
-from .builder import BuildError, build
+from ._preview.event_bus import EventBus
+from ._preview.server import LiveReloadServer
+from .builder import BuildError, build, discover_themes
 
 
 def _now() -> str:
     return datetime.now().strftime("%H:%M:%S")
 
 
-def _watch_loop(
+def _build_and_publish(
+    *,
     project_dir: Path,
     theme: str,
     html_name: str,
     pdf_name: str,
+    bus: EventBus,
+) -> None:
+    """Build once. Always publishes exactly one event: reloaded or build_error."""
+    try:
+        result = build(
+            project_dir=project_dir,
+            theme=theme,
+            html_name=html_name,
+            pdf_name=pdf_name,
+        )
+    except BuildError as exc:
+        bus.publish({"type": "build_error", "message": str(exc)})
+        return
+    bus.publish({"type": "reloaded", "theme": theme})
+    for warning in result.warnings:
+        bus.publish({"type": "pandoc_warning", "message": warning})
+
+
+def _watch_loop(
+    *,
+    project_dir: Path,
+    current_theme: Callable[[], str],
+    html_name: str,
+    pdf_name: str,
+    bus: EventBus,
     stop: threading.Event,
 ) -> None:
-    """Rebuild whenever resume.md or any theme CSS changes.
-
-    Imported lazily so users who never use --watch don't pay the watchfiles
-    import cost.
-    """
-    from watchfiles import watch
+    """Rebuild whenever resume.md or any theme CSS changes."""
+    from watchfiles import watch  # local import — only paid when --watch is used
 
     watch_paths = [project_dir / "resume.md"]
     themes_dir = project_dir / "themes"
@@ -38,24 +63,20 @@ def _watch_loop(
         watch_paths.append(themes_dir)
 
     for changes in watch(*watch_paths, stop_event=stop, recursive=True):
-        # Ignore changes to the output files we're producing — avoid
-        # rebuild loops.
+        # Ignore changes to the output files we're producing.
         relevant = [
             c for c in changes if Path(c[1]).name not in {html_name, pdf_name}
         ]
         if not relevant:
             continue
         print(f"[{_now()}] change detected → rebuilding…")
-        try:
-            build(
-                project_dir=project_dir,
-                theme=theme,
-                html_name=html_name,
-                pdf_name=pdf_name,
-            )
-            print(f"[{_now()}] rebuilt. refresh your browser.")
-        except BuildError as exc:
-            print(f"[{_now()}] build failed: {exc}")
+        _build_and_publish(
+            project_dir=project_dir,
+            theme=current_theme(),
+            html_name=html_name,
+            pdf_name=pdf_name,
+            bus=bus,
+        )
 
 
 def serve(
@@ -66,36 +87,95 @@ def serve(
     html_name: str = "index.html",
     pdf_name: str = "resume.pdf",
     open_browser: bool = True,
+    live_reload: bool = True,
 ) -> None:
-    """Serve `project_dir` over HTTP on `port` until interrupted."""
-    handler = partial(http.server.SimpleHTTPRequestHandler, directory=str(project_dir))
+    """Serve ``project_dir`` over HTTP on ``port`` until interrupted."""
+    if not live_reload:
+        # Fall back to the 0.1.0 behavior: plain SimpleHTTPRequestHandler.
+        _serve_plain(
+            project_dir=project_dir, port=port, html_name=html_name, open_browser=open_browser
+        )
+        return
+
+    bus = EventBus()
+    available_themes = tuple(sorted(discover_themes(project_dir).keys()))
+
+    def rebuild(t: str) -> None:
+        _build_and_publish(
+            project_dir=project_dir,
+            theme=t,
+            html_name=html_name,
+            pdf_name=pdf_name,
+            bus=bus,
+        )
+
+    server = LiveReloadServer(
+        project_dir=project_dir,
+        bus=bus,
+        rebuild=rebuild,
+        port=port,
+        available_themes=available_themes,
+        current_theme=theme,
+    )
 
     stop_event = threading.Event()
     watcher: threading.Thread | None = None
     if watch:
         watcher = threading.Thread(
             target=_watch_loop,
-            args=(project_dir, theme, html_name, pdf_name, stop_event),
+            kwargs={
+                "project_dir": project_dir,
+                "current_theme": server.current_theme,
+                "html_name": html_name,
+                "pdf_name": pdf_name,
+                "bus": bus,
+                "stop": stop_event,
+            },
             daemon=True,
         )
         watcher.start()
 
     url = f"http://localhost:{port}/{html_name}"
+    server_thread = threading.Thread(target=server.serve_forever, daemon=True)
+    server_thread.start()
+    print(f"[{_now()}] serving {project_dir} on {url}")
+    if watch:
+        print(f"[{_now()}] watching resume.md and themes/ — Ctrl+C to stop")
+    if open_browser:
+        threading.Timer(0.3, lambda: webbrowser.open(url)).start()
+
+    try:
+        while server_thread.is_alive():
+            server_thread.join(timeout=0.5)
+    except KeyboardInterrupt:
+        print()
+    finally:
+        stop_event.set()
+        server.shutdown()
+        if watcher is not None:
+            watcher.join(timeout=2)
+        time.sleep(0.05)
+
+
+def _serve_plain(
+    *,
+    project_dir: Path,
+    port: int,
+    html_name: str,
+    open_browser: bool,
+) -> None:
+    """Equivalent to the v0.1.0 preview behavior; used for --no-live-reload."""
+    import http.server
+    import socketserver
+    from functools import partial
+
+    handler = partial(http.server.SimpleHTTPRequestHandler, directory=str(project_dir))
+    url = f"http://localhost:{port}/{html_name}"
     with socketserver.ThreadingTCPServer(("127.0.0.1", port), handler) as httpd:
-        print(f"[{_now()}] serving {project_dir} on {url}")
-        if watch:
-            print(f"[{_now()}] watching resume.md and themes/ — Ctrl+C to stop")
+        print(f"[{_now()}] serving {project_dir} on {url} (no live-reload)")
         if open_browser:
-            # Slight delay so the server is ready before the browser hits it.
             threading.Timer(0.3, lambda: webbrowser.open(url)).start()
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:
-            print()  # newline after ^C
-        finally:
-            stop_event.set()
-            if watcher is not None:
-                # watchfiles returns promptly when stop_event is set.
-                watcher.join(timeout=2)
-            # Tiny pause helps the console flush cleanly before shell prompt.
-            time.sleep(0.05)
+            print()
