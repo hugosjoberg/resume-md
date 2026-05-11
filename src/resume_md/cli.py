@@ -7,6 +7,7 @@ import shutil
 import subprocess
 from importlib import resources
 from pathlib import Path
+from typing import NoReturn
 
 import typer
 
@@ -24,8 +25,13 @@ app = typer.Typer(
 )
 
 
-def _fail_with_formatted(exc: BuildError, project_dir: Path) -> None:
-    """Render a BuildError via ErrorFormatter and exit with code 1."""
+def _fail_with_formatted(exc: BuildError, project_dir: Path) -> NoReturn:
+    """Render a BuildError via ErrorFormatter and exit with code 1.
+
+    Annotated ``NoReturn`` so static analyzers know the caller's flow stops
+    here — otherwise references to ``result`` after the ``except`` block read
+    as possibly-unbound.
+    """
     from .errors import ErrorFormatter
 
     formatted = ErrorFormatter(project_dir=project_dir).format(str(exc))
