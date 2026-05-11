@@ -235,3 +235,37 @@ def test_non_html_files_are_not_modified(live_server, scaffolded_project) -> Non
     with urllib.request.urlopen(f"{base}/fixture.css", timeout=2) as resp:
         body = resp.read().decode("utf-8")
     assert body == "body { color: red; }"
+
+
+def test_watcher_unexpected_exception_keeps_loop_alive(scaffolded_project) -> None:
+    """A non-BuildError raised from build() must surface as a build_error
+    event without killing the watcher thread or letting the exception
+    escape."""
+    from resume_md._preview.event_bus import EventBus
+    from resume_md.preview import _build_and_publish
+
+    bus = EventBus()
+
+    # Patch build() at the preview module level to raise an unexpected error.
+    import resume_md.preview as preview_mod
+    original_build = preview_mod.build
+
+    def boom(**kwargs):  # noqa: ARG001
+        raise OSError("disk full")
+
+    preview_mod.build = boom
+    try:
+        with bus.subscribe() as q:
+            _build_and_publish(
+                project_dir=scaffolded_project,
+                theme="warm-ink",
+                html_name="index.html",
+                pdf_name="resume.pdf",
+                bus=bus,
+            )
+            event = q.get(timeout=1.0)
+    finally:
+        preview_mod.build = original_build
+
+    assert event["type"] == "build_error"
+    assert "disk full" in event["message"]

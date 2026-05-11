@@ -29,7 +29,9 @@ def _build_and_publish(
     pdf_name: str,
     bus: EventBus,
 ) -> None:
-    """Build once. Always publishes exactly one event: reloaded or build_error."""
+    """Build once. Always publishes exactly one terminal event (reloaded or
+    build_error). Non-BuildError exceptions are surfaced as build_error
+    events so the watcher cannot die silently on unexpected failures."""
     try:
         result = build(
             project_dir=project_dir,
@@ -40,6 +42,11 @@ def _build_and_publish(
     except BuildError as exc:
         bus.publish({"type": "build_error", "message": str(exc)})
         return
+    except Exception as exc:  # noqa: BLE001 — keep the watcher alive
+        msg = f"unexpected build error: {exc}"
+        print(f"[{_now()}] {msg}")
+        bus.publish({"type": "build_error", "message": msg})
+        return
     bus.publish({"type": "reloaded", "theme": theme})
     for warning in result.warnings:
         bus.publish({"type": "pandoc_warning", "message": warning})
@@ -49,12 +56,18 @@ def _watch_loop(
     *,
     project_dir: Path,
     current_theme: Callable[[], str],
+    trigger_rebuild: Callable[[str], None],
     html_name: str,
     pdf_name: str,
-    bus: EventBus,
     stop: threading.Event,
 ) -> None:
-    """Rebuild whenever resume.md or any theme CSS changes."""
+    """Rebuild whenever resume.md or any theme CSS changes.
+
+    All rebuilds — whether from /__set_theme POST or from a watcher event —
+    go through ``trigger_rebuild`` so they share the server's rebuild lock.
+    This prevents a save+theme-click race from producing corrupt output
+    files or out-of-order events.
+    """
     from watchfiles import watch  # local import — only paid when --watch is used
 
     watch_paths = [project_dir / "resume.md"]
@@ -70,13 +83,7 @@ def _watch_loop(
         if not relevant:
             continue
         print(f"[{_now()}] change detected → rebuilding…")
-        _build_and_publish(
-            project_dir=project_dir,
-            theme=current_theme(),
-            html_name=html_name,
-            pdf_name=pdf_name,
-            bus=bus,
-        )
+        trigger_rebuild(current_theme())
 
 
 def serve(
@@ -126,9 +133,9 @@ def serve(
             kwargs={
                 "project_dir": project_dir,
                 "current_theme": server.current_theme,
+                "trigger_rebuild": server.trigger_rebuild,
                 "html_name": html_name,
                 "pdf_name": pdf_name,
-                "bus": bus,
                 "stop": stop_event,
             },
             daemon=True,
