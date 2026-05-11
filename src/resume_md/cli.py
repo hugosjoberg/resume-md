@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import shutil
 import subprocess
 from importlib import resources
@@ -170,6 +171,70 @@ def themes(
                 break
         marker = " (default)" if name == "warm-ink" else ""
         typer.echo(f"  {name:<{width}}  {description}{marker}")
+
+
+theme_app = typer.Typer(
+    add_completion=False,
+    no_args_is_help=True,
+    help="Operate on a single theme (scaffold, inspect variables).",
+)
+app.add_typer(theme_app, name="theme")
+
+
+_THEME_HEADER_RE = re.compile(
+    r"^/\*[\s\S]*?\*/\s*", re.MULTILINE
+)
+
+
+@theme_app.command(name="new")
+def theme_new(
+    name: str = typer.Argument(..., help="Name of the new theme (filename stem)."),
+    from_: str = typer.Option(
+        "warm-ink", "--from", help="Base theme to copy from. See `resume-md themes`."
+    ),
+    force: bool = typer.Option(
+        False, "--force", help="Overwrite an existing theme file."
+    ),
+    project_dir: Path = typer.Option(
+        Path("."), "--project-dir", "-C", help="Project directory (default: cwd)."
+    ),
+) -> None:
+    """Scaffold a new theme file in <project>/themes/<name>.css."""
+    target_dir = project_dir.resolve()
+    themes = discover_themes(target_dir)
+    if from_ not in themes:
+        available = ", ".join(sorted(themes)) or "(none)"
+        typer.secho(
+            f"unknown base theme {from_!r}. Available: {available}.",
+            fg=typer.colors.RED, err=True,
+        )
+        raise typer.Exit(code=1)
+    source = themes[from_]
+
+    destination = target_dir / "themes" / f"{name}.css"
+    if destination.exists() and not force:
+        typer.secho(
+            f"{destination} already exists. Pass --force to overwrite.",
+            fg=typer.colors.RED, err=True,
+        )
+        raise typer.Exit(code=1)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+
+    source_text = source.read_text(encoding="utf-8")
+    # Rewrite the leading /* ... */ comment block to name the new theme.
+    new_header = (
+        f"/*\n * Theme: {name}\n *\n"
+        f" * Scaffolded from {from_}. Override variables on :root below to\n"
+        f" * customize colors, fonts, and spacing.\n */\n\n"
+    )
+    if _THEME_HEADER_RE.match(source_text):
+        body = _THEME_HEADER_RE.sub("", source_text, count=1)
+    else:
+        body = source_text
+    destination.write_text(new_header + body, encoding="utf-8")
+
+    typer.echo(f"wrote {destination} (based on {from_})")
+    typer.echo(f"next: edit {destination} and run `resume-md build --theme {name}`")
 
 
 @app.command()
