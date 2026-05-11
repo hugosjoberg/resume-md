@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import http.server
 import json
+import queue
 import socketserver
 import threading
 from collections.abc import Callable, Sequence
@@ -132,16 +133,30 @@ class LiveReloadHandler(http.server.SimpleHTTPRequestHandler):
             self.send_header(k, v)
         self.end_headers()
         try:
-            with self._state.bus.subscribe() as queue:
+            with self._state.bus.subscribe() as queue_:
                 self._write_sse({"type": "connected"})
                 while True:
-                    event = queue.get()
+                    try:
+                        event = queue_.get(timeout=15.0)
+                    except queue.Empty:
+                        # Heartbeat: keeps the connection alive through proxies
+                        # AND surfaces OSError on a dead socket, so the handler
+                        # thread cannot leak when the browser disconnects
+                        # silently. The leading colon makes the line an SSE
+                        # comment that the client ignores.
+                        self._write_sse_raw(": ping\n\n")
+                        continue
                     self._write_sse(event)
-        except (BrokenPipeError, ConnectionResetError):
+        except OSError:
             return
 
     def _write_sse(self, event: dict) -> None:
         data = json.dumps(event)
         chunk = f"data: {data}\n\n".encode()
         self.wfile.write(chunk)
+        self.wfile.flush()
+
+    def _write_sse_raw(self, text: str) -> None:
+        """Write a pre-formatted SSE chunk directly (used for heartbeats)."""
+        self.wfile.write(text.encode("utf-8"))
         self.wfile.flush()

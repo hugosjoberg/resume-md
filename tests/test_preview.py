@@ -95,3 +95,38 @@ def _read_sse_block(resp, timeout: float) -> dict:
         if text.startswith("data: "):
             payload_lines.append(text[len("data: ") :])
     raise TimeoutError("no SSE block within timeout")
+
+
+def test_events_handler_thread_exits_after_client_disconnects(live_server) -> None:
+    """SSE handler thread must wake within a bounded time after the browser
+    disconnects, otherwise subscribers leak across reloads.
+
+    We rely on the heartbeat in _handle_events: when the client closes the
+    socket, the next heartbeat write raises OSError and the handler exits.
+    """
+    server, bus, base = live_server
+
+    # Open and immediately close an SSE connection to trigger handler thread
+    # startup-then-disconnect. To keep the test fast we shorten the heartbeat
+    # implicit timeout by sending a regular event right after disconnect so
+    # the handler's `queue.get` returns (the socket write then fails).
+    req = urllib.request.Request(f"{base}/__events")
+    resp = urllib.request.urlopen(req, timeout=2)
+    _ = _read_sse_block(resp, timeout=2.0)  # connected
+    assert bus.subscriber_count() == 1
+    resp.close()
+
+    # Wake the handler with published events.  On some platforms (macOS) the
+    # first write after a client close succeeds because the kernel still
+    # accepts data into its send buffer; the OSError surfaces on the *next*
+    # write attempt.  Publishing two events in quick succession ensures the
+    # handler makes at least two write calls so the broken-pipe error is
+    # raised and the subscription is cleaned up promptly.
+    bus.publish({"type": "reloaded", "theme": "warm-ink"})
+    time.sleep(0.05)
+    bus.publish({"type": "reloaded", "theme": "warm-ink"})
+
+    deadline = time.monotonic() + 3.0
+    while bus.subscriber_count() > 0 and time.monotonic() < deadline:
+        time.sleep(0.05)
+    assert bus.subscriber_count() == 0, "SSE handler did not clean up subscription"
