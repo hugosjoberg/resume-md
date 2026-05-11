@@ -213,3 +213,25 @@ def test_set_theme_rejects_array_body(live_server) -> None:
     with pytest.raises(urllib.error.HTTPError) as exc_info:
         urllib.request.urlopen(req, timeout=2)
     assert exc_info.value.code == 400
+
+
+def test_index_html_gets_client_injection(live_server, scaffolded_project) -> None:
+    _, _, base = live_server
+    # Write a minimal index.html so the handler has something to serve.
+    (scaffolded_project / "index.html").write_text(
+        "<html><body><p>hi</p></body></html>", encoding="utf-8"
+    )
+    with urllib.request.urlopen(f"{base}/index.html", timeout=2) as resp:
+        body = resp.read().decode("utf-8")
+    assert "__resume_md_client_css" in body
+    assert "__rmd_bar" in body
+    # Injection must happen before </body>.
+    assert body.index("__rmd_bar") < body.index("</body>")
+
+
+def test_non_html_files_are_not_modified(live_server, scaffolded_project) -> None:
+    _, _, base = live_server
+    (scaffolded_project / "fixture.css").write_text("body { color: red; }", encoding="utf-8")
+    with urllib.request.urlopen(f"{base}/fixture.css", timeout=2) as resp:
+        body = resp.read().decode("utf-8")
+    assert body == "body { color: red; }"

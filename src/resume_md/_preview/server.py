@@ -18,7 +18,7 @@ from collections.abc import Callable, Sequence
 from functools import partial
 from pathlib import Path
 
-from .client import CLIENT_HTML  # noqa: F401
+from .client import CLIENT_HTML
 from .event_bus import EventBus
 
 _SSE_HEADERS = (
@@ -105,14 +105,53 @@ class LiveReloadHandler(http.server.SimpleHTTPRequestHandler):
     def log_message(self, format: str, *args) -> None:  # noqa: A002
         return
 
-    def do_GET(self) -> None:  # noqa: N802 — http.server convention
+    def do_GET(self) -> None:  # noqa: N802
         if self.path == "/__state":
             self._handle_state()
             return
         if self.path == "/__events":
             self._handle_events()
             return
+        if self._is_html_request():
+            self._serve_html_with_injection()
+            return
         super().do_GET()
+
+    def _is_html_request(self) -> bool:
+        path = self.path.split("?", 1)[0].split("#", 1)[0]
+        if path.endswith("/"):
+            path = path + "index.html"
+        return path.endswith(".html") or path.endswith(".htm")
+
+    def _serve_html_with_injection(self) -> None:
+        """Serve an HTML file with the live-reload client appended before </body>."""
+        rel = self.path.split("?", 1)[0].split("#", 1)[0].lstrip("/")
+        if rel.endswith("/") or rel == "":
+            rel = "index.html"
+        path = (self._state.project_dir / rel).resolve()
+        # Refuse path traversal.
+        try:
+            path.relative_to(self._state.project_dir.resolve())
+        except ValueError:
+            self.send_error(404, "Not found")
+            return
+        if not path.is_file():
+            self.send_error(404, "Not found")
+            return
+
+        original = path.read_text(encoding="utf-8")
+        if "</body>" in original:
+            injected = original.replace("</body>", CLIENT_HTML + "</body>", 1)
+        else:
+            injected = original + CLIENT_HTML
+        body = injected.encode("utf-8")
+
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(body)
 
     def do_POST(self) -> None:  # noqa: N802 — http.server convention
         if self.path == "/__set_theme":
