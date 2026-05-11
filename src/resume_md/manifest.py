@@ -7,8 +7,10 @@ Stored at ``.resume-md/manifest.json`` inside the user's project.
 
 from __future__ import annotations
 
+import enum
 import hashlib
 import json
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
@@ -54,3 +56,66 @@ def load_manifest(project_dir: Path) -> Manifest:
         resume_md_version=data["resume_md_version"],
         tracked_files=dict(data.get("tracked_files", {})),
     )
+
+
+class UpdateAction(str, enum.Enum):
+    UPDATE = "update"            # safe to refresh — recorded hash matches local
+    NO_CHANGE = "no-change"      # bundled identical to recorded; skip silently
+    SKIPPED = "skipped"          # user-modified; do not touch
+    HASH_REFRESH = "hash-refresh"  # user-modified, bundled unchanged: trust user, update recorded
+    MISSING_LOCAL = "missing"    # file deleted by user; no-op
+
+
+@dataclass(frozen=True)
+class UpdatePlanItem:
+    rel_path: str
+    action: UpdateAction
+    bundled_path: Path | None
+    new_hash: str | None
+
+
+def plan_update(
+    *,
+    project_dir: Path,
+    recorded: Mapping[str, str],
+    bundled: Mapping[str, Path],
+) -> list[UpdatePlanItem]:
+    """Decide what to do with each tracked file.
+
+    Args:
+        project_dir: where the user's project lives.
+        recorded: rel_path → recorded sha256 from manifest.
+        bundled: rel_path → packaged template path inside resume_md.
+    """
+    items: list[UpdatePlanItem] = []
+    for rel, recorded_hash in recorded.items():
+        bundled_path = bundled.get(rel)
+        local_path = project_dir / rel
+
+        if not local_path.is_file():
+            items.append(UpdatePlanItem(rel, UpdateAction.MISSING_LOCAL, bundled_path, None))
+            continue
+        if bundled_path is None or not bundled_path.is_file():
+            # No corresponding bundled file — leave alone.
+            items.append(UpdatePlanItem(rel, UpdateAction.NO_CHANGE, None, None))
+            continue
+
+        local_hash = hash_file(local_path)
+        bundled_hash = hash_file(bundled_path)
+
+        user_modified = local_hash != recorded_hash
+        bundled_changed = bundled_hash != recorded_hash
+
+        if not user_modified and bundled_changed:
+            items.append(
+                UpdatePlanItem(rel, UpdateAction.UPDATE, bundled_path, bundled_hash)
+            )
+        elif not user_modified and not bundled_changed:
+            items.append(UpdatePlanItem(rel, UpdateAction.NO_CHANGE, bundled_path, None))
+        elif user_modified and bundled_changed:
+            items.append(UpdatePlanItem(rel, UpdateAction.SKIPPED, bundled_path, None))
+        else:  # user_modified and not bundled_changed
+            items.append(
+                UpdatePlanItem(rel, UpdateAction.HASH_REFRESH, bundled_path, local_hash)
+            )
+    return items

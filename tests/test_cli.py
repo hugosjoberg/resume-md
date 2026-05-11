@@ -83,6 +83,46 @@ def test_doctor_succeeds_when_tools_present(runner: CliRunner) -> None:
     assert "weasyprint" in result.stdout
 
 
+def test_update_dry_run_does_not_modify(
+    runner: CliRunner, scaffolded_project: Path
+) -> None:
+    target = scaffolded_project / "themes" / "_base.css"
+    original = target.read_text(encoding="utf-8")
+    result = runner.invoke(
+        app, ["update", "--dry-run", "--project-dir", str(scaffolded_project)]
+    )
+    assert result.exit_code == 0
+    assert target.read_text(encoding="utf-8") == original
+
+
+def test_update_skips_locally_modified_file(
+    runner: CliRunner, scaffolded_project: Path
+) -> None:
+    """If the user edited a tracked file AND upstream changed it, update
+    reports skip and doesn't touch it."""
+    from resume_md.manifest import Manifest, load_manifest, save_manifest
+    target = scaffolded_project / "themes" / "warm-ink.css"
+    user_edit = "/* user changes go here */\n"
+    target.write_text(user_edit, encoding="utf-8")
+    # Simulate "bundled has also changed since scaffold": rewrite the manifest's
+    # recorded hash for warm-ink.css to something that doesn't match either
+    # the local file OR the current bundled file.
+    manifest = load_manifest(scaffolded_project)
+    new_tracked = dict(manifest.tracked_files)
+    fake_hash = "sha256:" + "0" * 64
+    new_tracked["themes/warm-ink.css"] = fake_hash
+    save_manifest(scaffolded_project, Manifest(
+        resume_md_version=manifest.resume_md_version, tracked_files=new_tracked,
+    ))
+
+    result = runner.invoke(
+        app, ["update", "--project-dir", str(scaffolded_project)]
+    )
+    assert result.exit_code == 0
+    assert target.read_text(encoding="utf-8") == user_edit
+    assert "skip" in result.stdout.lower() or "modified" in result.stdout.lower()
+
+
 def test_init_writes_manifest(runner: CliRunner, tmp_path: Path) -> None:
     target = tmp_path / "out"
     result = runner.invoke(app, ["init", str(target)])

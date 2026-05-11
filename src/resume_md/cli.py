@@ -327,5 +327,79 @@ def doctor() -> None:
         raise typer.Exit(code=1)
 
 
+@app.command()
+def update(
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Print the plan without modifying files."
+    ),
+    project_dir: Path = typer.Option(
+        Path("."), "--project-dir", "-C", help="Project directory (default: cwd)."
+    ),
+) -> None:
+    """Sync tracked infrastructure files from the installed package version."""
+    import shutil as _shutil
+    from importlib import resources as _resources
+
+    from .manifest import (
+        TRACKED_PATHS,
+        Manifest,
+        UpdateAction,
+        load_manifest,
+        plan_update,
+        save_manifest,
+    )
+
+    target = project_dir.resolve()
+    try:
+        manifest = load_manifest(target)
+    except FileNotFoundError:
+        typer.secho(
+            "no .resume-md/manifest.json — run `resume-md init` first"
+            " or this project predates manifests.",
+            fg=typer.colors.RED, err=True,
+        )
+        raise typer.Exit(code=1) from None
+
+    with _resources.as_file(_resources.files("resume_md").joinpath("templates")) as templates_dir:
+        bundled = {rel: Path(templates_dir) / rel for rel in TRACKED_PATHS}
+        plan = plan_update(
+            project_dir=target,
+            recorded=manifest.tracked_files,
+            bundled=bundled,
+        )
+
+        updated_count = 0
+        skipped_count = 0
+        new_tracked = dict(manifest.tracked_files)
+
+        for item in plan:
+            if item.action == UpdateAction.UPDATE:
+                typer.echo(f"  update  {item.rel_path}")
+                if not dry_run and item.bundled_path is not None and item.new_hash is not None:
+                    dest = target / item.rel_path
+                    dest.parent.mkdir(parents=True, exist_ok=True)
+                    _shutil.copy2(item.bundled_path, dest)
+                    new_tracked[item.rel_path] = item.new_hash
+                updated_count += 1
+            elif item.action == UpdateAction.SKIPPED:
+                typer.echo(f"  skip    {item.rel_path} (locally modified)")
+                skipped_count += 1
+            elif item.action == UpdateAction.HASH_REFRESH:
+                if not dry_run and item.new_hash is not None:
+                    new_tracked[item.rel_path] = item.new_hash
+                # silent — no user-visible change
+            elif item.action == UpdateAction.MISSING_LOCAL:
+                typer.echo(f"  miss    {item.rel_path} (removed locally — leaving alone)")
+            # NO_CHANGE: silent
+
+        if not dry_run and new_tracked != manifest.tracked_files:
+            save_manifest(target, Manifest(
+                resume_md_version=__version__, tracked_files=new_tracked,
+            ))
+
+    suffix = " (dry run — no files written)" if dry_run else ""
+    typer.echo(f"{updated_count} updated, {skipped_count} skipped{suffix}")
+
+
 if __name__ == "__main__":  # pragma: no cover
     app()
