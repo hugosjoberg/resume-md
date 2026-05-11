@@ -93,6 +93,15 @@ CLIENT_HTML = """\
     if (overlayEl) { overlayEl.remove(); overlayEl = null; }
   }
 
+  function showToast(message) {
+    const t = document.createElement("div");
+    t.className = "__rmd-toast";
+    t.textContent = "pandoc: " + message;
+    document.body.appendChild(t);
+    setTimeout(() => { t.style.opacity = "0"; }, 4700);
+    setTimeout(() => { t.remove(); }, 5000);
+  }
+
   function connect() {
     const src = new EventSource("/__events");
     src.onopen = () => setStatus("live");
@@ -104,6 +113,14 @@ CLIENT_HTML = """\
         showOverlay(payload.message || "Unknown build error.");
       } catch (e) {
         showOverlay("Unknown build error.");
+      }
+    });
+    src.addEventListener("pandoc_warning", (ev) => {
+      try {
+        const payload = JSON.parse(ev.data);
+        showToast(payload.message || "(no message)");
+      } catch (e) {
+        showToast("(unparseable event)");
       }
     });
   }
