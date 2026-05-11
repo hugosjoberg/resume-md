@@ -82,26 +82,53 @@ def plan_update(
 ) -> list[UpdatePlanItem]:
     """Decide what to do with each tracked file.
 
+    Iterates the union of recorded keys and bundled keys so that newly-tracked
+    files added in later package versions are delivered to projects scaffolded
+    against older versions.
+
     Args:
         project_dir: where the user's project lives.
-        recorded: rel_path → recorded sha256 from manifest.
+        recorded: rel_path → recorded sha256 from manifest (may be missing
+            entries that were added to bundled in newer versions).
         bundled: rel_path → packaged template path inside resume_md.
     """
     items: list[UpdatePlanItem] = []
-    for rel, recorded_hash in recorded.items():
+    all_keys = set(recorded) | set(bundled)
+    for rel in sorted(all_keys):
+        recorded_hash = recorded.get(rel)
         bundled_path = bundled.get(rel)
         local_path = project_dir / rel
 
         if not local_path.is_file():
-            items.append(UpdatePlanItem(rel, UpdateAction.MISSING_LOCAL, bundled_path, None))
+            if bundled_path is not None and bundled_path.is_file() and recorded_hash is None:
+                # New tracked file not yet in user's project — copy it in.
+                bundled_hash = hash_file(bundled_path)
+                items.append(
+                    UpdatePlanItem(rel, UpdateAction.UPDATE, bundled_path, bundled_hash)
+                )
+            else:
+                items.append(UpdatePlanItem(rel, UpdateAction.MISSING_LOCAL, bundled_path, None))
             continue
         if bundled_path is None or not bundled_path.is_file():
-            # No corresponding bundled file — leave alone.
             items.append(UpdatePlanItem(rel, UpdateAction.NO_CHANGE, None, None))
             continue
 
         local_hash = hash_file(local_path)
         bundled_hash = hash_file(bundled_path)
+
+        # New tracked file the user happens to already have:
+        # treat as already-present, record current local hash.
+        if recorded_hash is None:
+            if local_hash == bundled_hash:
+                items.append(
+                    UpdatePlanItem(rel, UpdateAction.HASH_REFRESH, bundled_path, local_hash)
+                )
+            else:
+                # User has their own version of a file we now track. Don't clobber.
+                items.append(
+                    UpdatePlanItem(rel, UpdateAction.HASH_REFRESH, bundled_path, local_hash)
+                )
+            continue
 
         user_modified = local_hash != recorded_hash
         bundled_changed = bundled_hash != recorded_hash

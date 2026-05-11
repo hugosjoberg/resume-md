@@ -83,3 +83,47 @@ def test_plan_update_actions(tmp_path: Path) -> None:
     assert actions["themes/_base.css"] == UpdateAction.UPDATE
     assert actions["themes/warm-ink.css"] == UpdateAction.SKIPPED
     assert actions["missing-locally.txt"] == UpdateAction.MISSING_LOCAL
+
+
+def test_plan_update_delivers_newly_tracked_files(tmp_path: Path) -> None:
+    """A file in bundled but not in recorded is a new tracked entry from a
+    later package version — it should be UPDATE'd in if the user doesn't
+    already have it."""
+    from resume_md.manifest import UpdateAction, plan_update
+
+    # Simulate v0.3 adding a new tracked file the user's v0.2.0 manifest
+    # doesn't know about.
+    bundled_new = tmp_path / "fake-bundled-new.css"
+    bundled_new.write_text("/* shipped in v0.3 */\n", encoding="utf-8")
+
+    plan = plan_update(
+        project_dir=tmp_path,
+        recorded={},  # empty manifest — pretend this is a fresh scaffold
+        bundled={"themes/sage.css": bundled_new},
+    )
+    assert len(plan) == 1
+    assert plan[0].rel_path == "themes/sage.css"
+    assert plan[0].action == UpdateAction.UPDATE
+    assert plan[0].new_hash is not None
+
+
+def test_plan_update_respects_existing_local_file_not_in_manifest(
+    tmp_path: Path,
+) -> None:
+    """If a file is in bundled and the user already has it locally but the
+    manifest doesn't know about it, we should NOT clobber the user's file."""
+    from resume_md.manifest import UpdateAction, plan_update
+
+    bundled_new = tmp_path / "fake-bundled-new.css"
+    bundled_new.write_text("BUNDLED CONTENT\n", encoding="utf-8")
+    local_new = tmp_path / "themes" / "sage.css"
+    local_new.parent.mkdir(parents=True, exist_ok=True)
+    local_new.write_text("USER CONTENT\n", encoding="utf-8")
+
+    plan = plan_update(
+        project_dir=tmp_path,
+        recorded={},
+        bundled={"themes/sage.css": bundled_new},
+    )
+    assert len(plan) == 1
+    assert plan[0].action == UpdateAction.HASH_REFRESH  # trust user, record their hash

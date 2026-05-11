@@ -24,6 +24,15 @@ app = typer.Typer(
 )
 
 
+def _fail_with_formatted(exc: BuildError, project_dir: Path) -> None:
+    """Render a BuildError via ErrorFormatter and exit with code 1."""
+    from .errors import ErrorFormatter
+
+    formatted = ErrorFormatter(project_dir=project_dir).format(str(exc))
+    typer.secho(f"build failed: {formatted.message}", fg=typer.colors.RED, err=True)
+    raise typer.Exit(code=1) from exc
+
+
 def _version_callback(value: bool) -> None:
     if value:
         typer.echo(f"resume-md {__version__}")
@@ -108,11 +117,7 @@ def build(
     try:
         result = _builder.build(project_dir=target, theme=theme)
     except BuildError as exc:
-        from .errors import ErrorFormatter
-
-        formatted = ErrorFormatter(project_dir=target).format(str(exc))
-        typer.secho(f"build failed: {formatted.message}", fg=typer.colors.RED, err=True)
-        raise typer.Exit(code=1) from exc
+        _fail_with_formatted(exc, target)
 
     for warning in result.warnings:
         typer.secho(f"pandoc: {warning}", fg=typer.colors.YELLOW, err=True)
@@ -150,8 +155,7 @@ def preview(
         try:
             _builder.build(project_dir=target, theme=theme)
         except BuildError as exc:
-            typer.secho(f"build failed: {exc}", fg=typer.colors.RED, err=True)
-            raise typer.Exit(code=1) from exc
+            _fail_with_formatted(exc, target)
 
     serve(
         project_dir=target,
