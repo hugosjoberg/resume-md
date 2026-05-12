@@ -1,0 +1,38 @@
+/*
+ * Theme: midnight
+ *
+ * Dark mode. Warm-cream ink on near-black paper with a single amber
+ * accent. Designed for screen sharing (LinkedIn, GitHub Pages) and for
+ * recipients who appreciate a non-default aesthetic; prints dark — make
+ * sure that's what you want before sending to a recruiter who'll spool it.
+ */
+
+:root {
+  --accent: #f59e0b;
+  --ink: #e8e3d8;
+  --ink-soft: #d6d1c6;
+  --body-secondary: #b8b2a5;
+  --meta: #9a9588;
+  --label: #6f6b62;
+  --rule-section: #2a2d33;
+  --rule-header: #f59e0b;
+  --paper: #14171c;
+
+  --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --font-display: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+
+  --tracking-name: -0.5px;
+  --header-border-width: 1px;
+  --headshot-radius: 8px;
+}
+
+/* Force the dark background into the printed PDF — without this the
+   PDF renders white and the warm-cream text becomes unreadable. */
+body {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+@media print {
+  body { background: var(--paper); }
+}

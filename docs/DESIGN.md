@@ -17,7 +17,7 @@ Key characteristics:
 - **Hierarchy built entirely through type weight, size, and spacing.**
 - **Dense but scannable**: a recruiter finds the key numbers in 15 seconds.
 
-The other shipped themes (`classic`, `modern`) follow the same structural rules but exchange the palette and typeface.
+The other shipped themes (`classic`, `modern`, `midnight`, `terminal`, `saffron`) follow the same structural rules but exchange the palette and typeface — including a dark variant (`midnight`) and a monospace variant (`terminal`) that demonstrate how far the system bends without breaking.
 
 ## 2. Colors
 

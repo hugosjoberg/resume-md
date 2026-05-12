@@ -57,14 +57,22 @@ See [`docs/PRODUCT.md`](docs/PRODUCT.md) for the design philosophy and [`docs/DE
 
 ## Themes
 
-Three themes ship by default:
+Six themes ship in `themes/`. The first three are conservative defaults; the next three lean further into typography and palette.
+
+**Conservative trio** (screenshots below):
 
 | | | |
 |---|---|---|
 | ![warm-ink](examples/screenshots/warm-ink.png) | ![classic](examples/screenshots/classic.png) | ![modern](examples/screenshots/modern.png) |
 | **`warm-ink`** (default) — Helvetica Neue + warm ochre accent on paper-tinted background. The original design. | **`classic`** — Charter/Georgia serif, black on white, no chromatic accent. Conservative, academic. | **`modern`** — Inter sans-serif, blue accent, more whitespace. Tech-recruiter friendly. |
 
-Switch with `make THEME=classic`.
+**Creative trio** (no screenshots yet — `make THEME=<name> preview` to see them):
+
+- **`midnight`** — Dark mode. Warm-cream ink on near-black paper, amber accent. Screen-first; prints dark, so check with `make THEME=midnight preview` before sending to anyone who'll spool it.
+- **`terminal`** — Monospace everywhere (JetBrains Mono → system fallbacks), terminal-green accent, prompt-prefix on section headings (`$ EXPERIENCE`). For engineering CVs where the medium is the message.
+- **`saffron`** — Bold expressive light theme. Saturated saffron-orange accent on warm cream, with a display-serif × body-sans split (Charter on the name, Inter in the body) for editorial contrast.
+
+Switch with `make THEME=<name>`.
 
 Authoring a new theme is mostly setting CSS variables — see [`docs/themes.md`](docs/themes.md) for the variable reference.
 
