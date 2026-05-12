@@ -29,9 +29,10 @@ $(CSS): themes/_base.css themes/$(THEME).css
 	@mkdir -p .build
 	cat themes/_base.css themes/$(THEME).css > $(CSS)
 
-$(HTML): $(SOURCE) $(CSS)
+$(HTML): $(SOURCE) $(CSS) templates/resume.html filters/split-date.lua
 	pandoc $(SOURCE) \
-		--standalone \
+		--template templates/resume.html \
+		--lua-filter filters/split-date.lua \
 		--css $(CSS) \
 		--embed-resources \
 		-o $(HTML)

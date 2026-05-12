@@ -37,7 +37,12 @@ See [`docs/PRODUCT.md`](docs/PRODUCT.md) for the design philosophy and [`docs/DE
    make check
    ```
 
-4. Edit `resume.md` (drop a headshot in, or remove the `<img>` element). Then build:
+4. Edit `resume.md`:
+   - The block at the top between the `---` lines (the frontmatter) holds your name, role, photo, summary, and contact items.
+   - Everything below is normal Markdown — sections for skills, experience, education, etc.
+   - Full reference: [`docs/authoring.md`](docs/authoring.md).
+
+5. Build:
 
    ```bash
    make            # writes index.html and resume.pdf with the default theme
