@@ -1,0 +1,44 @@
+/*
+ * Theme: terminal
+ *
+ * Monospace everywhere. Reads like a well-formatted README rendered in
+ * a developer's terminal — terminal-green accent, near-white paper,
+ * generous tracking. For engineering CVs where the medium is the message.
+ */
+
+:root {
+  --accent: #16a34a;
+  --ink: #18181b;
+  --ink-soft: #27272a;
+  --body-secondary: #3f3f46;
+  --meta: #52525b;
+  --label: #71717a;
+  --rule-section: #e4e4e7;
+  --rule-header: #16a34a;
+  --paper: #fafaf9;
+
+  --font-body: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --font-display: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+  /* Mono fonts are wide; pull the display tracking back to neutral and
+     loosen the uppercase tracking just a touch since the glyphs already
+     have built-in horizontal rhythm. */
+  --tracking-name: 0;
+  --tracking-uppercase: 1.5px;
+
+  --fs-name: 22pt;
+  --headshot-radius: 4px;
+  --header-border-width: 1px;
+}
+
+/* A subtle prompt-prefix in front of section headings reinforces the
+   conceit without adding chrome. Removed in print to keep the PDF
+   clean for ATS parsers. */
+h2::before {
+  content: "$ ";
+  color: var(--label);
+  font-weight: 400;
+}
+@media print {
+  h2::before { content: ""; }
+}

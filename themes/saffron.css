@@ -1,0 +1,33 @@
+/*
+ * Theme: saffron
+ *
+ * Bold expressive light theme — Italian-magazine energy. Saturated
+ * saffron-orange accent on warm cream, with display-serif × body-sans
+ * typographic split for editorial contrast. Pushes the accent harder
+ * than warm-ink without breaking the Single Ink Rule.
+ */
+
+:root {
+  --accent: #c2410c;
+  --ink: #1c1917;
+  --ink-soft: #292524;
+  --body-secondary: #44403c;
+  --meta: #57534e;
+  --label: #78716c;
+  --rule-section: #e7e0d4;
+  --rule-header: #c2410c;
+  --paper: #fbf6ec;
+
+  --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --font-display: "Charter", "Georgia", "Iowan Old Style", "Times New Roman", serif;
+
+  --fs-name: 30pt;
+  --tracking-name: -1px;
+  --tracking-uppercase: 2.8px;
+
+  --headshot-radius: 2px;
+  --header-border-width: 2px;
+}
+
+/* The serif display deserves a touch more space below the name. */
+h1 { margin-bottom: 5px; }
