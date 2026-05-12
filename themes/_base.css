@@ -211,10 +211,6 @@ h3 + p + p {
   .header { border-bottom-color: var(--rule-header); }
   h2 { margin-top: 10px; border-color: var(--rule-section); }
   a { color: var(--accent) !important; }
-  .headshot {
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
 }
 
 @page {
