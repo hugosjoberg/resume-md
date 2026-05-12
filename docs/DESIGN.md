@@ -128,6 +128,6 @@ A theme is just a CSS file that sets variables on `:root`. To create one:
 
 1. Copy any `themes/<name>.css` to `themes/<your-theme>.css`.
 2. Override the variables you want to change.
-3. Run `resume-md build --theme <your-theme>`.
+3. Run `make THEME=<your-theme>`.
 
 See [`themes.md`](themes.md) for the full variable reference.

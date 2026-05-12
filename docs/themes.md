@@ -7,10 +7,10 @@ Themes are CSS files that set custom properties on `:root`. The base stylesheet 
 ```bash
 cp themes/warm-ink.css themes/my-theme.css
 # edit themes/my-theme.css
-resume-md build --theme my-theme
+make THEME=my-theme
 ```
 
-Themes in your project's `themes/` directory shadow bundled themes with the same name.
+Drop a new `.css` into `themes/` and you can use it by name immediately — no registration step.
 
 ## Variable reference
 

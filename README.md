@@ -2,7 +2,7 @@
 
 Print-quality PDF resumes from a single Markdown file. Pandoc + WeasyPrint with a deliberate, themeable design system.
 
-You write Markdown. You run one command. You get:
+You write Markdown. You run `make`. You get:
 
 - a polished `resume.pdf` ready to send,
 - a single self-contained `index.html` you can host anywhere or open in a browser.
@@ -17,47 +17,43 @@ Most resume tools optimize for the wrong things: drag-and-drop layouts, "creativ
 
 See [`docs/PRODUCT.md`](docs/PRODUCT.md) for the design philosophy and [`docs/DESIGN.md`](docs/DESIGN.md) for the visual system.
 
-## Install
-
-`resume-md` is a Python CLI that wraps Pandoc and WeasyPrint.
-
-```bash
-# 1. Install Pandoc (resume-md cannot ship this — it's a separate binary)
-brew install pandoc                # macOS
-# sudo apt-get install pandoc      # Debian/Ubuntu
-
-# 2. Install resume-md (WeasyPrint comes bundled)
-pipx install resume-md
-```
-
-Verify everything is wired up:
-
-```bash
-resume-md doctor
-```
-
 ## Quick start
 
-```bash
-resume-md init my-resume
-cd my-resume
-resume-md build               # writes index.html and resume.pdf
-resume-md preview --watch     # serves locally, rebuilds on save
-```
+1. Click **Use this template** on GitHub to create your own copy.
+2. Install the two binaries the build pipeline needs:
 
-Edit `resume.md`, drop a headshot in (or remove the `<img>` element), and re-run `build` whenever you want.
+   ```bash
+   # macOS
+   brew install pandoc
+   pipx install weasyprint
 
-## CLI
+   # Debian / Ubuntu
+   sudo apt-get install pandoc weasyprint
+   ```
+
+3. Verify everything is wired up:
+
+   ```bash
+   make check
+   ```
+
+4. Edit `resume.md` (drop a headshot in, or remove the `<img>` element). Then build:
+
+   ```bash
+   make            # writes index.html and resume.pdf with the default theme
+   make preview    # build, then open in your browser
+   make THEME=classic
+   ```
+
+## Targets
 
 | Command | What it does |
 |---|---|
-| `resume-md init [PATH]` | Scaffold a new resume project (default `./resume`). |
-| `resume-md build [--theme NAME]` | Generate `index.html` + `resume.pdf`. |
-| `resume-md preview [--watch]` | Serve locally; with `--watch`, rebuild on file changes. |
-| `resume-md themes` | List bundled + project-local themes. |
-| `resume-md doctor` | Verify Pandoc and WeasyPrint are available. |
-
-Run `resume-md <command> --help` for full options.
+| `make` | Generate `index.html` + `resume.pdf` with the default theme (`warm-ink`). |
+| `make THEME=<name>` | Use a different theme from `themes/`. |
+| `make preview` | Build, then open `index.html` in your default browser. |
+| `make check` | Verify `pandoc` and `weasyprint` are on `PATH`. |
+| `make clean` | Remove generated outputs (`.build/`, `index.html`, `resume.pdf`). |
 
 ## Themes
 
@@ -68,23 +64,13 @@ Three themes ship by default:
 | ![warm-ink](examples/screenshots/warm-ink.png) | ![classic](examples/screenshots/classic.png) | ![modern](examples/screenshots/modern.png) |
 | **`warm-ink`** (default) — Helvetica Neue + warm ochre accent on paper-tinted background. The original design. | **`classic`** — Charter/Georgia serif, black on white, no chromatic accent. Conservative, academic. | **`modern`** — Inter sans-serif, blue accent, more whitespace. Tech-recruiter friendly. |
 
-Switch with `resume-md build --theme classic`.
+Switch with `make THEME=classic`.
 
 Authoring a new theme is mostly setting CSS variables — see [`docs/themes.md`](docs/themes.md) for the variable reference.
 
-## Auto-build on push (optional)
-
-Every scaffolded project includes `.github/workflows/build-pdf.yaml`. On every push to `main`, it:
-
-1. Installs Pandoc and `resume-md` on the runner.
-2. Runs `resume-md build`.
-3. Uploads `resume.pdf` and `index.html` as workflow artifacts.
-
-On a tag push (`v*`), it additionally attaches the PDF to a GitHub Release. Delete the workflow file to opt out.
-
 ## Sharing the HTML
 
-`resume-md build` produces a single self-contained `index.html` (the headshot is base64-embedded, CSS is inlined). Drop it in any static host — GitHub Pages, Netlify, your own server — or attach to an email. No external assets to forget.
+`make` produces a single self-contained `index.html` (the headshot is base64-embedded, CSS is inlined). Drop it in any static host — GitHub Pages, Netlify, your own server — or attach to an email. No external assets to forget.
 
 ## Architecture
 
@@ -94,18 +80,19 @@ resume.md ──► pandoc ──► index.html ──► weasyprint ──► r
                 │                  └── single self-contained file
                 │                      (CSS inlined, images embedded)
                 │
-                └── _base.css + theme.css concatenated
+                └── themes/_base.css + themes/<theme>.css concatenated
 ```
 
-Two binaries do all the real work; the Python CLI just orchestrates them and ships the themes.
+Two binaries do all the real work; the `Makefile` orchestrates them.
 
 ## Requirements
 
-- Python 3.10+
 - Pandoc 2.x or 3.x
+- WeasyPrint (latest)
+- GNU Make
 - A POSIX-y operating system (macOS and Linux are tested; Windows likely works under WSL).
 
-## Development
+## Contributing
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md).
 

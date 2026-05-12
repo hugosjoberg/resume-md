@@ -1,23 +1,9 @@
-# Python
-__pycache__/
-*.py[cod]
-*.egg-info/
-.venv/
-.eggs/
-build/
-dist/
-
-# Tooling
-.pytest_cache/
-.ruff_cache/
-.coverage
-
-# Editor
+# Editor / OS
 .DS_Store
 .vscode/
 .idea/
 
-# Local build output (when someone runs the CLI inside this repo)
+# Local build output
 /index.html
 /resume.pdf
 /.build/

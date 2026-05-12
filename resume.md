@@ -1,3 +1,7 @@
+---
+title: "Jane Doe — Senior Software Engineer"
+---
+
 <div class="header">
 <div class="header-top">
 <div class="name-block">
