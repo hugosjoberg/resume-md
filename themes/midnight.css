@@ -26,11 +26,12 @@
   --headshot-radius: 8px;
 }
 
-/* Force the dark background into the printed PDF — without this the
-   PDF renders white and the warm-cream text becomes unreadable. */
+/* Keep the dark background when someone prints index.html from a browser.
+   WeasyPrint renders it correctly regardless (because of the @media print
+   override below). Only the `-webkit-` form is kept — the unprefixed
+   `print-color-adjust` makes WeasyPrint emit a benign-but-noisy warning. */
 body {
   -webkit-print-color-adjust: exact;
-  print-color-adjust: exact;
 }
 
 @media print {

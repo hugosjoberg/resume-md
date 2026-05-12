@@ -1,24 +1,31 @@
 ---
-title: "Jane Doe — Senior Software Engineer"
----
+# === BASIC INFO ===
+name: Jane Doe
+role: Senior Software Engineer
 
-<div class="header">
-<div class="header-top">
-<div class="name-block">
-<h1>Jane Doe</h1>
-<span class="role">Senior Software Engineer</span>
-</div>
-<img src="headshot.svg" alt="Jane Doe" class="headshot" />
-</div>
-<p class="summary">Backend engineer with 9+ years of experience building distributed systems and data platforms. Comfortable across the stack — from low-level performance work to leading small teams. Based in London; previously in Berlin and Stockholm.</p>
-<div class="contact-row">
-<span>London, UK</span>
-<span>+44 7700 900123</span>
-<a href="mailto:jane@example.com">jane@example.com</a>
-<a href="https://www.linkedin.com/in/janedoe/">LinkedIn</a>
-<a href="https://github.com/janedoe">GitHub</a>
-</div>
-</div>
+# === OPTIONAL ===
+# Filename of your headshot, or delete this line to skip the photo entirely.
+photo: headshot.svg
+
+# A short intro paragraph. The "|" keeps line breaks; use ">" instead if
+# you want one flowing paragraph regardless of how you wrap the lines.
+summary: |
+  Backend engineer with 9+ years of experience building distributed
+  systems and data platforms. Comfortable across the stack — from
+  low-level performance work to leading small teams. Based in London;
+  previously in Berlin and Stockholm.
+
+# === CONTACT ROW ===
+# One item per line. Use Markdown link syntax for clickable items.
+# The double quotes are needed because lines that start with "[" are
+# special in YAML.
+contact:
+  - "London, UK"
+  - "+44 7700 900123"
+  - "[jane@example.com](mailto:jane@example.com)"
+  - "[LinkedIn](https://www.linkedin.com/in/janedoe/)"
+  - "[GitHub](https://github.com/janedoe)"
+---
 
 ## Skills
 
@@ -33,7 +40,7 @@ title: "Jane Doe — Senior Software Engineer"
 
 ## Experience
 
-### Northwind Data [Jan 2022 – Present]{.period}
+### Northwind Data — Jan 2022 – Present
 
 *Senior Software Engineer (previously Engineer II)*
 
@@ -46,7 +53,7 @@ Tech lead for the ingestion platform team — owns the pipeline that ingests, no
 
 **Stack:** Go, Rust, Kafka, Flink, PostgreSQL, ClickHouse, Kubernetes, Terraform, AWS
 
-### Bramble Health [Mar 2020 – Jan 2022]{.period}
+### Bramble Health — Mar 2020 – Jan 2022
 
 *Senior Software Engineer*
 
@@ -58,7 +65,7 @@ Worked on the clinician-facing application platform at a Series-B digital health
 
 **Stack:** Go, TypeScript, GraphQL, PostgreSQL, Redis, Kubernetes, AWS
 
-### Lumiform [Aug 2017 – Feb 2020]{.period}
+### Lumiform — Aug 2017 – Feb 2020
 
 *Software Engineer*
 
@@ -70,7 +77,7 @@ Early backend engineer at an industrial-IoT startup. Wore a lot of hats; everyth
 
 **Stack:** Python, Django, PostgreSQL, Redis, Docker, AWS
 
-### Helix Robotics [Sep 2015 – Jul 2017]{.period}
+### Helix Robotics — Sep 2015 – Jul 2017
 
 *Junior Software Engineer*
 
@@ -83,13 +90,13 @@ First job out of university. Worked on the control-plane software for industrial
 
 ## Education
 
-### MSc Computer Science [Sep 2013 – Jun 2015]{.period}
+### MSc Computer Science — Sep 2013 – Jun 2015
 
 *University of Edinburgh*
 
 Thesis: Streaming algorithms for approximate distinct-count over unbounded keyspaces.
 
-### BSc Computer Science [Sep 2010 – Jun 2013]{.period}
+### BSc Computer Science — Sep 2010 – Jun 2013
 
 *University of Edinburgh*
 

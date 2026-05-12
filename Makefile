@@ -21,22 +21,24 @@ CSS := .build/style.css
 
 all: generate
 
-generate: $(HTML) $(PDF)
-
-# Base first, theme last: both files declare :root with the same specificity,
+# `generate` always does a clean rebuild. Make compares file mtimes, not
+# variable values — so without this, `make THEME=classic` after a previous
+# `make` would silently be a no-op (the index.html / resume.pdf from the
+# earlier build are newer than the source files). The full build is
+# sub-second, so the cost of always rebuilding is negligible.
+#
+# Base CSS first, theme last: both declare :root with the same specificity,
 # so the later one wins in the cascade. The theme overrides base defaults.
-$(CSS): themes/_base.css themes/$(THEME).css
+generate:
+	@rm -rf .build $(HTML) $(PDF)
 	@mkdir -p .build
 	cat themes/_base.css themes/$(THEME).css > $(CSS)
-
-$(HTML): $(SOURCE) $(CSS)
 	pandoc $(SOURCE) \
-		--standalone \
+		--template templates/resume.html \
+		--lua-filter filters/split-date.lua \
 		--css $(CSS) \
 		--embed-resources \
 		-o $(HTML)
-
-$(PDF): $(HTML)
 	weasyprint $(HTML) $(PDF)
 
 preview: generate
